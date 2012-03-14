@@ -48,43 +48,92 @@ void ComputeResults(NB &testData, NB &bayes, Pgiven &given1, Pgiven &given0);
 void ComputeLLH(NB &testData, Pgiven &given1, Pgiven &given0, double &prob1, double &prob0, int X);
 void SetPriors(NB &bayes);
 
-
-
-
-
+void NBClassify(ifstream &infile, ifstream &testfile);
+double GetZ(NB &data, vector<double> &betas, int vectorIndex){
+  double sum = 0.0;  
+  for (int i = 0; i < data.numValsPerLine; i++)
+         sum+= betas[i]*(data.vects[vectorIndex][i]);
+  cout << sum << "\n";
+  return sum;
+}
 int main (int argc, const char * argv[])
 {
-
+ /* Input Files */
     ifstream infile;
-    infile.open("vote-train.txt");
+    ifstream testfile;
+    infile.open("simple-train.txt");
     if (infile.fail()){
         cout << "Input file failed\n";
     }
-    
+    testfile.open("simple-test.txt");
+    if (testfile.fail()){
+        cout << "Input file failed\n";
+    }
+  //NBClassify(infile, testfile);
+  NB data = Parsefile(infile);
+  NB testData = Parsefile(testfile);
+  //* TRAIN *//
+  int epochs = 10000;
+  double learningRate = 0.0001;
+  vector<double> betas(50);
+  for (int i = 0; i < 50; i++)
+    betas[i] = 0.0;
+
+  /**/
+    int m = data.numValsPerLine;
+    for (int e = 0; e < epochs; e++){
+        if (e > 999 && e%1000 == 0) cout << ".";
+        vector<double> gradient(50, 0.0);
+        for (int vectorIndex = 0; vectorIndex < data.numVectors; vectorIndex++){
+            double z = GetZ(data, betas, vectorIndex);
+            int y = data.vects[vectorIndex][m+1];
+            for (int j = 0; j < m; j++){
+                double eZ = exp(z);
+                /*Note (1/ (1+e to the -z)) == eZ/(eZ+1) */
+                gradient[j] += data.vects[vectorIndex][j] * (y-(1/(1+(1/eZ))) );//(y - (eZ/(eZ+1)));  
+            }
+        }
+       cout << "\n"; 
+    for (int k = 0; k < m; k++){
+      betas[k] += (learningRate * gradient[k]);
+//      cout << "beta[" << k<< "] is " << betas[k] << "  ";
+    }
+ }
+
+    //*Classify test data **/
+    for (int vectorInTestData = 0; vectorInTestData < testData.numVectors; vectorInTestData++){
+      double probOfOne = 0.0;
+      double Z = GetZ(data, betas, vectorInTestData);
+      double eZ = exp(Z);
+      cout << "Z = " << Z << " eZ = " << eZ << "\n";
+      probOfOne = 1/(1+(1/eZ));
+      cout << "ProbOfOne = " << probOfOne << "  " ;
+      cout << "Vector " << vectorInTestData << " has Y= ";
+      if (probOfOne > 0.5)
+          cout << 1;
+      else 
+        cout << 0;
+      cout << "\n";
+    }
+return 0;
+}
+
+void NBClassify(ifstream &infile, ifstream &testfile){
     /* Get number of entries and number of lines */
     NB bayes = Parsefile(infile);
     //PrintNB(bayes);
-    
     /* Get probs */
     SetPriors(bayes);
-
     /* Intialize and set Vectors of probabilties for 11,10,00,01 */
     Pgiven given1 = getPstruct(bayes.numValsPerLine);
     Pgiven given0 = getPstruct(bayes.numValsPerLine);
     SetVectorsOfProbabilities(bayes, given1, given0);
-
-
-        ifstream testfile;
-    testfile.open("vote-test.txt");
-    if (testfile.fail()){
-        cout << "Input file failed\n";
-    }
-    
     NB testData = Parsefile(testfile);
-
     ComputeResults(testData, bayes, given1, given0);
-       return 0;
+    infile.close();
+    testfile.close();
 }
+
 
 struct NB Parsefile(ifstream &infile)
 {
