@@ -14,7 +14,7 @@
 #include <math.h>
 using namespace std;
 
-int laplace = 1;
+int laplace = 0;
 
 typedef struct NB{
     int numZeros;
@@ -48,18 +48,7 @@ void ComputeResults(NB &testData, NB &bayes, Pgiven &given1, Pgiven &given0);
 void ComputeLLH(NB &testData, Pgiven &given1, Pgiven &given0, double &prob1, double &prob0, int X);
 void SetPriors(NB &bayes);
 
-struct Pgiven getPstruct(int numVals){
-    Pgiven newPgiven;
-    newPgiven.probOfValAndOne = vector<double>(50);
-    newPgiven.probOfValAndZero = vector<double>(50);
-    for (int i = 0; i < numVals; i++){
-        newPgiven.probOfValAndOne[i] = laplace;
-        newPgiven.probOfValAndZero[i] = laplace;
-    }
 
-    
-    return newPgiven;
-}
 
 
 
@@ -74,7 +63,7 @@ int main (int argc, const char * argv[])
     
     /* Get number of entries and number of lines */
     NB bayes = Parsefile(infile);
-    PrintNB(bayes);
+    //PrintNB(bayes);
     
     /* Get probs */
     SetPriors(bayes);
@@ -85,28 +74,7 @@ int main (int argc, const char * argv[])
     SetVectorsOfProbabilities(bayes, given1, given0);
 
 
-    /*
-    cout << "ProbVector for getting Zero with Y=0 ";
-    for (int k = 0; k < 2; k++){
-       cout << given0.probOfValAndZero[k] << " ";
-    }
-    cout << "\nProbVector for getting Zero with Y=1 ";
-    for (int k = 0; k < 2; k++){
-        cout << given0.probOfValAndOne[k] << " ";
-    }
-    cout << "\nProbVector for getting One with Y=0  ";
-    for (int k = 0; k < 2; k++){
-        cout << given1.probOfValAndZero[k] << " ";
-    }
-    cout << "\nProbVector for getting One with Y=1 ";
-    for (int k = 0; k < 2; k++){
-        cout << given1.probOfValAndOne[k] << " ";
-    }
-    string temp;
-    getline(cin, temp);
-     */
-    
-    ifstream testfile;
+        ifstream testfile;
     testfile.open("vote-test.txt");
     if (testfile.fail()){
         cout << "Input file failed\n";
@@ -187,8 +155,6 @@ void ComputeResults(NB &testData, NB &bayes, Pgiven &given1, Pgiven &given0){
         double prob1 = 0;
         ComputeLLH(testData,given1, given0, prob1, prob0, i);
         
-        cout << "\ncount0: " << prob0 << "\n";
-        cout << "count1: " << prob1 << "\n";
         double logPY0 = log(bayes.numZeros)-log(bayes.numVectors);
         double logPY1 = log(bayes.numOnes)-log(bayes.numVectors);
         
@@ -202,9 +168,9 @@ void ComputeResults(NB &testData, NB &bayes, Pgiven &given1, Pgiven &given0){
         else if (PROB1 > PROB0 && testData.vects[i][testData.numValsPerLine] == 1)
             testData.correct1 +=1;
         
-        cout << "Prior0:  "<< (double)bayes.numZeros/bayes.numVectors <<" prob0: "<< prob0 << "\n";
-        cout << "Prior1:  "<< (double)bayes.numOnes/bayes.numVectors <<" prob0: "<< prob1 << " ";
-        cout << "\n\t\t\t\t\t\tProb 0: "<< PROB0 << " Prob 1: " << PROB1 << "\n";
+        //cout << "Prior0:  "<< (double)bayes.numZeros/bayes.numVectors <<" prob0: "<< prob0 << "\n";
+        //cout << "Prior1:  "<< (double)bayes.numOnes/bayes.numVectors <<" prob0: "<< prob1 << " ";
+        //cout << "\n\t\t\t\t\t\tProb 0: "<< PROB0 << " Prob 1: " << PROB1 << "\n";
         
     }
     cout << "Class 0: tested " << testData.numZeros << ", correctly classified " << testData.correct0 << "\n";
@@ -242,14 +208,12 @@ void CalcProbOfZeroForFeature(NB bayes, int feature, Pgiven &given){
                 given.probOfValAndOne[feature] +=1;
             }
         }
-
     }
     double denom = bayes.numVectors + (laplace * bayes.numVectors);
     given.probOfValAndZero[feature] = given.probOfValAndZero[feature]/denom;
     given.probOfValAndOne[feature] = given.probOfValAndOne[feature]/denom;
     // cout << "Probability for feature " << feature << " being 0 with y=1 is: " << given.probOfValAndOne[feature] << "\n";
     //  cout << "Probability for feature " << feature << " being 0 with y=0 is: " << given.probOfValAndZero[feature] << "\n";
-    
 }
 void CalcProbOfOneForFeature(NB bayes, int feature, Pgiven &given){
     for (int i = 0; i < bayes.numVectors; i++){
@@ -275,12 +239,9 @@ void CalcProbOfOneForFeature(NB bayes, int feature, Pgiven &given){
 void SetVectorsOfProbabilities(NB &bayes, Pgiven &given1, Pgiven &given0)
 {
     for (int feature = 0; feature < bayes.numValsPerLine; feature++){
-        cout << "Checking fexture X" << feature << ":\n";
-
+        //cout << "Checking fexture X" << feature << ":\n";
         CalcProbOfZeroForFeature(bayes, feature, given0);
         CalcProbOfOneForFeature(bayes, feature, given1);
-        
-        
     }
 }
 void SetPriors(NB &bayes)
@@ -291,7 +252,16 @@ void SetPriors(NB &bayes)
     bayes.logPrior1 = log(bayes.numOnes)-log(bayes.numVectors);
 }
 
-
+struct Pgiven getPstruct(int numVals){
+    Pgiven newPgiven;
+    newPgiven.probOfValAndOne = vector<double>(50);
+    newPgiven.probOfValAndZero = vector<double>(50);
+    for (int i = 0; i < numVals; i++){
+        newPgiven.probOfValAndOne[i] = laplace;
+        newPgiven.probOfValAndZero[i] = laplace;
+    }
+    return newPgiven;
+}
 
         
         /*
